@@ -16,10 +16,10 @@ public class Field extends Entity {
     }
 
     public void removeEntity() {
-        if(isOnField && entityOnField != null) {
+        if(entityOnField != null) {
             entityOnField = null;
-            isOnField = false;
         }
+        isOnField = false;
     }
 
     public boolean isEntityOnField() {

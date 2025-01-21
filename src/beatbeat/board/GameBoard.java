@@ -1,7 +1,11 @@
 package beatbeat.board;
 
 import beatbeat.board.entities.*;
+import beatbeat.controller.GameEvent;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 public class GameBoard {
@@ -12,7 +16,7 @@ public class GameBoard {
     private Player player;
     private Goal goal;
     private List<GameEvent> gameEventListeners;
-    private class MovementResult {
+    private static class MovementResult {
         boolean canMove;
         MovementOptions movementOptions;
         MovementResult(boolean canMove, MovementOptions movementOptions) {
@@ -21,13 +25,16 @@ public class GameBoard {
         }
     }
     public GameBoard(int height, int width, int numOfEnemies) {
-        this.boardWidth = width;
-        this.boardHeight = height;
-        this.board = new Field[height][width];
-        this.enemies = new Enemy[numOfEnemies];
+        gameEventListeners = new ArrayList<>();
+        startGame(height, width, numOfEnemies);
+    }
 
+    public void startGame(int newHeight, int newWidth, int newEnemyCount) {
+        setupBoard(newHeight, newWidth, newEnemyCount);
+    }
 
-
+    public Field[][] getBoard() {
+        return Objects.requireNonNullElseGet(this.board, () -> new Field[0][0]);
     }
 
     public void registerGameEventListener(GameEvent newListener) {
@@ -38,7 +45,11 @@ public class GameBoard {
         this.gameEventListeners.remove(listener);
     }
 
-    private void setupBoard() {
+    private void setupBoard(int height, int width, int numOfEnemies) {
+        this.boardWidth = width;
+        this.boardHeight = height;
+        this.board = new Field[boardHeight][boardWidth];
+        this.enemies = new Enemy[numOfEnemies];
         for(int i = 0; i < boardHeight; i++) {
             for(int j = 0; j < boardWidth; j++) {
                 board[i][j] = new Field(j, i);
@@ -56,14 +67,15 @@ public class GameBoard {
         Random rng = new Random();
         int enemyX = rng.nextInt(0, boardWidth);
         int enemyY = rng.nextInt(0, boardHeight);
-        if( board[enemyY][enemyX].isEntityOnField() &&
-            !(board[enemyY][enemyX].getEntity() instanceof Player) &&
-            !(board[enemyY][enemyX].getEntity() instanceof Enemy) &&
+        System.out.println("lmao" + enemyX + "," + enemyY);
+        if( !board[enemyY][enemyX].isEntityOnField() &&
             !(board[enemyY][enemyX] instanceof Goal)
         ) {
+            System.out.println("lol" + board[enemyY][enemyX].getEntity() + enemyX + enemyY);
             Enemy newEnemy;
             newEnemy = new Enemy(enemyX, enemyY,rng.nextBoolean());
             enemies[enemies.length - numOfEnemies] = newEnemy;
+            board[enemyY][enemyX].placeEntity(newEnemy);
             genEnemies(--numOfEnemies);
         } else {
             genEnemies(numOfEnemies);
@@ -84,7 +96,14 @@ public class GameBoard {
         } else {
             return 0;
         }
+    }
 
+    public int getNumOfEnemies() {
+        if(enemies != null) {
+            return this.enemies.length;
+        } else {
+            return 0;
+        }
     }
 
     private void moveEntity(Entity toMove, Field moveTo) {
@@ -100,34 +119,34 @@ public class GameBoard {
 
     public void moveEnemies() {
         for(Enemy enemy: enemies) {
-            handleEnemyMove(enemy)
+            handleEnemyMove(enemy);
         }
     }
 
     private void handleEnemyMove(Enemy enemy) {
-        static int newPosY = enemy.isVertical() ? (enemy.isDirectionSwitched ? (enemy.getPosY() + 1) : (enemy.getPosY() - 1)) : enemy.getPosY();
-        static int newPosX = enemy.isVertical() ? enemy.getPosX() : (enemy.isDirectionSwitched ? (enemy.getPosX() - 1) : (enemy.getPosY() + 1));
-        MovementOptions canMove = canMove(enemy, board[newPosY][newPosX]);
+        int newPosY = enemy.isVertical() ? (enemy.isDirectionSwitched() ? (enemy.getPosY() + 1) : (enemy.getPosY() - 1)) : enemy.getPosY();
+        int newPosX = enemy.isVertical() ? enemy.getPosX() : (enemy.isDirectionSwitched() ? (enemy.getPosX() - 1) : (enemy.getPosY() + 1));
+        MovementResult canMove = canMove(enemy, board[newPosY][newPosX]);
         if(!canMove.canMove && (canMove.movementOptions == MovementOptions.ENEMY_TO_ENTITY || canMove.movementOptions == MovementOptions.OUT_OF_BOUNDS)) {
             enemy.switchDirection();
         } else if(canMove.canMove && canMove.movementOptions == MovementOptions.ENEMY_TO_FIELD) {
-            moveEntity(enemy, board[newPosY][newPosX])
+            moveEntity(enemy, board[newPosY][newPosX]);
         }
     }
 
     public void movePlayer(char direction) {
         switch(direction) {
             case 'u' -> {
-                handlePlayerMove(player.getPosX(), player.getPosY() - 1);
+                handlePlayerMove(0, - 1);
             }
             case 'd' -> {
-                handlePlayerMove(player.getPosX(), player.getPosY() + 1);
+                handlePlayerMove(0, 1);
             }
             case 'l' -> {
-                handlePlayerMove(player.getPosX() - 1, player.getPosY());
+                handlePlayerMove(- 1, 0);
             }
             case 'r' -> {
-                handlePlayerMove(player.getPosX() + 1, player.getPosY());
+                handlePlayerMove(1, 0);
             }
         }
     }
@@ -139,10 +158,10 @@ public class GameBoard {
                 case MovementOptions.PLAYER_TO_FIELD -> moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
                 case MovementOptions.PLAYER_TO_GOAL -> {
                     moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
-                    finishGame(true;);
+                    finishGame(true);
                 }
             }
-            moveEntity(player, board[moveY][moveX]);
+            moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
             if(isEnemyNear()) {
                 player.decreaseHealth();
             }
@@ -172,7 +191,7 @@ public class GameBoard {
     }
 
     private void finishGame(boolean reachedFinish) {
-        for (GameEventListener listener : listeners) {
+        for (GameEvent listener : gameEventListeners) {
             listener.onGameFinished(reachedFinish);
         }
     }
