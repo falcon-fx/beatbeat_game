@@ -89,13 +89,30 @@ public class GameBoard {
         toMove.setPosX(newPosX);
     }
 
+    public void moveEnemies() {
+        for(Enemy enemy: enemies) {
+            handleEnemyMove(enemy)
+        }
+    }
+
+    private void handleEnemyMove(Enemy enemy) {
+        static int newPosY = enemy.isVertical() ? (enemy.isDirectionSwitched ? (enemy.getPosY() + 1) : (enemy.getPosY() - 1)) : enemy.getPosY();
+        static int newPosX = enemy.isVertical() ? enemy.getPosX() : (enemy.isDirectionSwitched ? (enemy.getPosX() - 1) : (enemy.getPosY() + 1));
+        MovementOptions canMove = canMove(enemy, board[newPosY][newPosX]);
+        if(!canMove.canMove && (canMove.movementOptions == MovementOptions.ENEMY_TO_ENTITY || canMove.movementOptions == MovementOptions.OUT_OF_BOUNDS)) {
+            enemy.switchDirection();
+        } else if(canMove.canMove && canMove.movementOptions == MovementOptions.ENEMY_TO_FIELD) {
+            moveEntity(enemy, board[newPosY][newPosX])
+        }
+    }
+
     public void movePlayer(char direction) {
         switch(direction) {
             case 'u' -> {
-                handlePlayerMove(player.getPosX(), player.getPosY() + 1);
+                handlePlayerMove(player.getPosX(), player.getPosY() - 1);
             }
             case 'd' -> {
-                handlePlayerMove(player.getPosX(), player.getPosY() - 1);
+                handlePlayerMove(player.getPosX(), player.getPosY() + 1);
             }
             case 'l' -> {
                 handlePlayerMove(player.getPosX() - 1, player.getPosY());
