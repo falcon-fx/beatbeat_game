@@ -11,6 +11,7 @@ public class GameBoard {
     private Enemy[] enemies;
     private Player player;
     private Goal goal;
+    private List<GameEvent> gameEventListeners;
     private class MovementResult {
         boolean canMove;
         MovementOptions movementOptions;
@@ -27,6 +28,14 @@ public class GameBoard {
 
 
 
+    }
+
+    public void registerGameEventListener(GameEvent newListener) {
+        this.gameEventListeners.add(newListener);
+    }
+
+    public void deregisterGameEventListener(GameEvent listener) {
+        this.gameEventListeners.remove(listener);
     }
 
     private void setupBoard() {
@@ -130,12 +139,15 @@ public class GameBoard {
                 case MovementOptions.PLAYER_TO_FIELD -> moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
                 case MovementOptions.PLAYER_TO_GOAL -> {
                     moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
-                    finishGame();
+                    finishGame(true;);
                 }
             }
             moveEntity(player, board[moveY][moveX]);
             if(isEnemyNear()) {
                 player.decreaseHealth();
+            }
+            if(player.getHealth() == HealthState.DEAD) {
+                finishGame(false);
             }
         }
     }
@@ -159,7 +171,10 @@ public class GameBoard {
         return false;
     }
 
-    private void finishGame() {
+    private void finishGame(boolean reachedFinish) {
+        for (GameEventListener listener : listeners) {
+            listener.onGameFinished(reachedFinish);
+        }
     }
 
     private MovementResult canMove(Entity toMove, Field moveTo) {
@@ -187,25 +202,5 @@ public class GameBoard {
             return new MovementResult(false, MovementOptions.OUT_OF_BOUNDS);
         }
     }
-
-    /*
-
-
-    public void onTick(int boundaryX, int boundaryY) {
-        if (vertical) {
-            if (getPosY() < boundaryY) {
-                moveEntity(getPosX(), getPosY() + 1);
-            } else if (getPosY() > 0) {
-                moveEntity(getPosX(), getPosY() - 1);
-            }
-        } else {
-            if (getPosX() < boundaryX) {
-                moveEntity(getPosX() + 1, getPosY());
-            } else if (getPosY() > 0) {
-                moveEntity(getPosX() - 1, getPosY());
-            }
-        }
-    }
-     */
 }
 

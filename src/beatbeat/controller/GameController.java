@@ -6,7 +6,7 @@ import beatbeat.view.GameView;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class GameController {
+public class GameController implements GameEvent {
     private GameBoard board;
     private GameView view;
 
@@ -34,5 +34,10 @@ public class GameController {
         switch (keyCode) {
             //case KeyEvent.VK_UP -> board.
         }
+    }
+
+    @Override
+    public void onGameFinished() {
+        
     }
 }
