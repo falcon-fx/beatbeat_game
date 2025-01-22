@@ -45,14 +45,29 @@ public class GameBoard {
         this.gameEventListeners.remove(listener);
     }
 
+    public void updateGame() {
+        moveEnemies();
+        if(player.getHealth() == HealthState.DEAD) {
+            finishGame(false);
+        }
+        if(isEnemyNear()) {
+            player.decreaseHealth();
+        }
+    }
+
     private void setupBoard(int height, int width, int numOfEnemies) {
         this.boardWidth = width;
         this.boardHeight = height;
         this.board = new Field[boardHeight][boardWidth];
         this.enemies = new Enemy[numOfEnemies];
+        this.goal = new Goal(boardWidth - 1, 0);
         for(int i = 0; i < boardHeight; i++) {
             for(int j = 0; j < boardWidth; j++) {
-                board[i][j] = new Field(j, i);
+                if(i == goal.getPosY() && j == goal.getPosX()) {
+                    board[i][j] = goal;
+                } else {
+                    board[i][j] = new Field(j, i);
+                }
             }
         }
         this.player = new Player(0, boardHeight - 1);
@@ -67,11 +82,11 @@ public class GameBoard {
         Random rng = new Random();
         int enemyX = rng.nextInt(0, boardWidth);
         int enemyY = rng.nextInt(0, boardHeight);
-        System.out.println("lmao" + enemyX + "," + enemyY);
+        //System.out.println("lmao" + enemyX + "," + enemyY);
         if( !board[enemyY][enemyX].isEntityOnField() &&
             !(board[enemyY][enemyX] instanceof Goal)
         ) {
-            System.out.println("lol" + board[enemyY][enemyX].getEntity() + enemyX + enemyY);
+            //System.out.println("lol" + board[enemyY][enemyX].getEntity() + enemyX + enemyY);
             Enemy newEnemy;
             newEnemy = new Enemy(enemyX, enemyY,rng.nextBoolean());
             enemies[enemies.length - numOfEnemies] = newEnemy;
@@ -108,7 +123,9 @@ public class GameBoard {
 
     private void moveEntity(Entity toMove, Field moveTo) {
         board[toMove.getPosY()][toMove.getPosX()].removeEntity();
+        System.out.println("Board: removed entity from board, pos: " + toMove.getPosY() + "," + toMove.getPosX() + ", is it there? " + board[toMove.getPosY()][toMove.getPosX()].isEntityOnField());
         moveTo.placeEntity(toMove);
+        System.out.println("Board: moved entity to " + moveTo.getPosY() + "," + moveTo.getPosX() + "is it there? " + board[moveTo.getPosY()][moveTo.getPosX()].isEntityOnField());
         updateEntityPosition(toMove, moveTo.getPosX(), moveTo.getPosY());
     }
 
@@ -125,11 +142,15 @@ public class GameBoard {
 
     private void handleEnemyMove(Enemy enemy) {
         int newPosY = enemy.isVertical() ? (enemy.isDirectionSwitched() ? (enemy.getPosY() + 1) : (enemy.getPosY() - 1)) : enemy.getPosY();
-        int newPosX = enemy.isVertical() ? enemy.getPosX() : (enemy.isDirectionSwitched() ? (enemy.getPosX() - 1) : (enemy.getPosY() + 1));
-        MovementResult canMove = canMove(enemy, board[newPosY][newPosX]);
+        int newPosX = enemy.isVertical() ? enemy.getPosX() : (enemy.isDirectionSwitched() ? (enemy.getPosX() - 1) : (enemy.getPosX() + 1));
+        System.out.println("Enemy move pre: oldpos: " + enemy.getPosX() + "," + enemy.getPosY() + " newPosX: " + newPosX + "newPosY: " + newPosY);
+        MovementResult canMove = canMove(enemy, newPosY, newPosX);
+        System.out.println("Enemy move: oldpos: " + enemy.getPosX() + "," + enemy.getPosY() + " newPosX: " + newPosX + "newPosY: " + newPosY + "canmove: " + canMove.canMove + ", options: " + canMove.movementOptions);
         if(!canMove.canMove && (canMove.movementOptions == MovementOptions.ENEMY_TO_ENTITY || canMove.movementOptions == MovementOptions.OUT_OF_BOUNDS)) {
+            System.out.println("Enemy move: cant move, switching direction");
             enemy.switchDirection();
         } else if(canMove.canMove && canMove.movementOptions == MovementOptions.ENEMY_TO_FIELD) {
+
             moveEntity(enemy, board[newPosY][newPosX]);
         }
     }
@@ -152,7 +173,7 @@ public class GameBoard {
     }
 
     private void handlePlayerMove(int moveX, int moveY) {
-        MovementResult canMove = canMove(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
+        MovementResult canMove = canMove(player, (player.getPosY() + moveY), (player.getPosX() + moveX));
         if(canMove.canMove) {
             switch (canMove.movementOptions) {
                 case MovementOptions.PLAYER_TO_FIELD -> moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
@@ -160,13 +181,6 @@ public class GameBoard {
                     moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
                     finishGame(true);
                 }
-            }
-            moveEntity(player, board[player.getPosY() + moveY][player.getPosX() + moveX]);
-            if(isEnemyNear()) {
-                player.decreaseHealth();
-            }
-            if(player.getHealth() == HealthState.DEAD) {
-                finishGame(false);
             }
         }
     }
@@ -181,7 +195,7 @@ public class GameBoard {
                 int newColIndex = player.getPosX() + j;
                 
                 if((newRowIndex >= 0 && newRowIndex < boardHeight) && (newColIndex >= 0 && newColIndex < boardWidth)) {
-                    if(board[newColIndex][newRowIndex].isEntityOnField() && board[newColIndex][newRowIndex].getEntity() instanceof Enemy) {
+                    if(board[newRowIndex][newColIndex].isEntityOnField() && board[newRowIndex][newColIndex].getEntity() instanceof Enemy) {
                         return true;
                     }
                 }
@@ -196,8 +210,10 @@ public class GameBoard {
         }
     }
 
-    private MovementResult canMove(Entity toMove, Field moveTo) {
-        if(moveTo.getPosX() >= 0 && moveTo.getPosX() < boardWidth && moveTo.getPosY() >= 0 && moveTo.getPosY() < boardHeight) {
+    private MovementResult canMove(Entity toMove, int moveToY, int moveToX) {
+        if(moveToX >= 0 && moveToX < boardWidth && moveToY >= 0 && moveToY < boardHeight) {
+            System.out.println("canMove: " + moveToX + "," + moveToY);
+            Field moveTo = board[moveToY][moveToX];
             if(toMove instanceof Player) {
                 if(moveTo instanceof Goal goalToMoveTo) {
                     if(goalToMoveTo.isEntityOnField()) {

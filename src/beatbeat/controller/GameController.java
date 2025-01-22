@@ -23,7 +23,9 @@ public class GameController implements GameEvent {
         board.registerGameEventListener(this);
         view.addKeyListener(new KeyListener() {
             @Override
-            public void keyTyped(KeyEvent e) {}
+            public void keyTyped(KeyEvent e) {
+
+            }
 
             @Override
             public void keyPressed(KeyEvent e) {
@@ -33,6 +35,8 @@ public class GameController implements GameEvent {
             @Override
             public void keyReleased(KeyEvent e) {}
         });
+        canMove = true;
+        this.view.setGameOptions(board.getBoardHeight(), board.getBoardWidth());
         startGameLoop(2000);
     }
 
@@ -51,9 +55,16 @@ public class GameController implements GameEvent {
     public void startGameLoop(int loopIntervalMillisec) {
         board.startGame(board.getBoardHeight(), board.getBoardWidth(), board.getNumOfEnemies());
         gameLoop.scheduleAtFixedRate(() -> {
-            canMove = true;
-            board.moveEnemies();
-            view.updateView(board.getBoard());
+            try {
+                canMove = true;
+                board.updateGame();
+                view.updateView(board.getBoard());
+                System.out.println("Moving");
+            } catch(Exception e) {
+                e.printStackTrace();
+                stopGameLoop();
+            }
+
         }, 0, loopIntervalMillisec, TimeUnit.MILLISECONDS);
     }
 

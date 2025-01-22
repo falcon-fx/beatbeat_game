@@ -14,21 +14,21 @@ public class Main {
 
         sum = Integer.toString(x + y);
 
-        System.out.println(sum);
-        System.out.println(StringUtils.isPalindrome(""));
+        //System.out.println(sum);
+        //System.out.println(StringUtils.isPalindrome(""));
         int[][] board;
 
         board = new int[5][6];
-        System.out.println(board.length);
-        System.out.println(board[0].length);
-        System.out.println(Arrays.toString(board[0]));
-        for( int[] row: board ) {
-            for (int num: row) {
-                System.out.print(num);
-            }
-            System.out.println("");
-        }
-        GameController newGame = new GameController(new GameBoard(10,15, 5), new GameView(10, 15, 5));
+        //System.out.println(board.length);
+        //System.out.println(board[0].length);
+        //System.out.println(Arrays.toString(board[0]));
+        //for( int[] row: board ) {
+        //    for (int num: row) {
+        //        System.out.print(num);
+        //    }
+        //    System.out.println("");
+        //}
+        GameController newGame = new GameController(new GameBoard(5,8, 1), new GameView());
 
     }
 }

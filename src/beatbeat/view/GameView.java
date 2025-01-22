@@ -2,6 +2,7 @@ package beatbeat.view;
 
 import beatbeat.board.entities.Enemy;
 import beatbeat.board.entities.Field;
+import beatbeat.board.entities.Goal;
 import beatbeat.board.entities.Player;
 
 import javax.swing.*;
@@ -10,13 +11,14 @@ import java.awt.*;
 public class GameView extends JFrame {
     private int boardHeight;
     private int boardWidth;
-    private int numOfEnemies;
     private JPanel[][] gameBoardPanels;
 
-    public GameView(int height, int width, int numOfEnemies) {
-        this.boardHeight = height;
-        this.boardWidth = width;
-        this.numOfEnemies = numOfEnemies;
+    public GameView() {
+    }
+
+    public void setGameOptions(int boardHeight, int boardWidth) {
+        this.boardHeight = boardHeight;
+        this.boardWidth = boardWidth;
         initializePanels();
     }
 
@@ -42,6 +44,7 @@ public class GameView extends JFrame {
     public void updateView(Field[][] board) {
         for (int i = 0; i < boardHeight; i++) {
             for (int j = 0; j < boardWidth; j++) {
+                System.out.println("View: goal is found here? "+ i + " " + j + ", " + (board[i][j] instanceof Goal));
                 if(!board[i][j].isEntityOnField()) {
                     gameBoardPanels[i][j].setBackground(Color.WHITE);
                 } else if(board[i][j].getEntity() instanceof Player player) {
@@ -53,6 +56,9 @@ public class GameView extends JFrame {
                     }
                 } else if(board[i][j].getEntity() instanceof Enemy currEnemy) {
                     gameBoardPanels[currEnemy.getPosY()][currEnemy.getPosX()].setBackground(Color.MAGENTA);
+                }
+                if(board[i][j] instanceof Goal) {
+                    gameBoardPanels[i][j].setBackground(Color.CYAN);
                 }
             }
         }
